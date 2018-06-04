@@ -8,6 +8,10 @@ class Row
     @hints = [" "] * @NUMBER_OF_PINS #"●","○"
   end
 
+  def to_s
+    "just testing this"
+  end
+
   def render
     hints_hash = {1=>"●", 0=>" ", -1=>"○"}
 
