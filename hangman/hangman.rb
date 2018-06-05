@@ -8,12 +8,14 @@ class Game
     word_engine = Word.new
     word_displayer = Display.new
     player = Player.new
+    serialize = Serialize.new
+
     puts "Lets play Hangman!"
     puts "do you want to load a game? (press l)"
     puts "or do you want to play a new? (press any key)"
     choice = gets.chomp
     if choice == "l"
-      @mistakes, @word, @guessed = load
+      @mistakes, @word, @guessed = serialize.load
     else
       @mistakes = 0
       @word = word_engine.new_word.downcase
@@ -25,12 +27,15 @@ class Game
     game_on = true
     while game_on == true
 
-      print "Enter a character a-z or enter '?' to save the game \n"
+      puts "Enter a character a-z or enter '?' to save the game"
       puts " guessed: #{@guessed}, mistakes: #{@mistakes}"
+      @view = word_displayer.word_to_view @word, @guessed
+      puts @view
+
 
       guess = player.get_character
       if guess == "?"
-        save
+        serialize.save @mistakes, @word, @guessed
         puts "game saved"
         return
       else
@@ -46,35 +51,6 @@ class Game
     puts @word
   end
 
-  def save
-    Dir.mkdir("savegames") unless Dir.exists?("savegames")
-
-    File.open("savegames/savegames.data", "ar") do |file|
-      file.puts "#{@mistakes}, #{@word}, #{@guessed}"
-    end
-  end
-
-  def load
-    lines = []
-    File.open("savegames/savegames.data", "r") do |file|
-      lines = file.readlines
-    end
-
-    lines.each_with_index { |line, idx| puts "#{idx} #{line}"}
-    puts "choose a save file numbers 0-9"
-    begin
-      choice = gets.chomp.match(/[0-9]{1}/)[0]
-      load_data = lines[choice.to_i].chomp
-    rescue
-      puts "try again"
-      retry
-    end
-    load_data = load_data.split(", ")
-    load_data[0] = load_data[0].to_i
-    load_data
-  end
-
-
   def test_status
     if !@view.include? "_"
       game_on = false
@@ -85,9 +61,51 @@ class Game
     end
     game_on
   end
+end
 
-  def check_guess char, word
-    word.include?(char)
+# Serialize load/save game data
+class Serialize
+  def load
+    lines = []
+    File.open("savegames/savegames.data", "r") do |file|
+      lines = file.readlines
+    end
+
+    lines.each_with_index { |line, idx| puts "#{idx} #{line}"}
+
+    puts "choose a save file, numbers 0-#{lines.length-1}"
+    begin
+      choice = gets.chomp.match(/[0-#{lines.length-1}]{1}/)[0]
+      load_data = lines[choice.to_i].chomp
+    rescue
+      puts "try again"
+      retry
+    end
+    load_data = load_data.split(", ")
+    load_data[0] = load_data[0].to_i
+    load_data
+  end
+
+  def save mistakes, word, guessed
+    Dir.mkdir("savegames") unless Dir.exists?("savegames")
+    if !File.file?("savegames/savegames.data")
+      File.open("savegames/savegames.data", "w") do |file|
+        10.times { file.puts "..." }
+      end
+    end
+    lines = []
+    File.open("savegames/savegames.data", "r") do |file|
+      lines = file.readlines
+      lines.each_with_index {|line, idx| puts "#{idx} #{line}"}
+      puts "choose a save slot numbers 0-#{lines.length}"
+    end
+
+    begin
+      choice = gets.chomp.match(/[0-#{lines.length}]{1}/)[0]
+    rescue
+      puts "try again"
+      retry
+    end
   end
 end
 
@@ -161,16 +179,5 @@ class Word
   end
 end
 
-
 game = Game.new
 game.play
-
-"""
-_____
-|    |
-|   \O/
-|    |
-|   / \
-|______
-|      |
-"""
